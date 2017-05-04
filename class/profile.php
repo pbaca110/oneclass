@@ -84,30 +84,65 @@ class profile implements \jsonSerializable {
 	 * @throws \ TypeError if $newAtHandle is not a string
 	 **/
 	public function setProfileAtHandle(string $newProfileAtHandle) : void{$newProfileAtHandle = trim($newProfileAtHandle);
-	$newProfileAtHandle = filter_var($newProfileAtHandle,FILTER_SANITIZE_STRING,FILTER_FLAG_NO_ENCODE_QUOTES);}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	$newProfileAtHandle = filter_var($newProfileAtHandle,FILTER_SANITIZE_STRING,FILTER_FLAG_NO_ENCODE_QUOTES);if(empty($newProfileAtHandle) ===true){throw(new \InvalidArgumentException("profile at handle is empty or insecure"));
+	}if(strlen($newProfileAtHandle)>32){throw(\RangeException("profile at handle is too large"));}
+	$this->profileAthandle = $newProfileAtHandle;
+	}
+/**
+ * gets profile by profile id
+ * @param \PDO $pdo $pdo PDO connection object
+ * @param int $profileId profile id to search for
+ * @return Profile|null Profile or null if not found
+ * @throws \PDOException when mySQL related errors occur
+ * @throws \TypeError when variables are not the correct data type
+ **/
+public static function getProfileByProfileId(\PDO $pdo,int $profileId){if($profileId <= 0 ){throw(new \PDOException("profile id is not positive"));
+}
+$query = "SELECT profileId,profileActivationToken,profileAthandle FROM profile WHERE profileId = :profileId"; $statement = $pdo->prepare($query);$parameters =["profileId" => $profileId];$statement->execute($parameters);
+try{$profile = null;$statement->setFetchMode(\PDO::FETCH_ASSOC);$row = $statement->fetch();if(row !==false){$profile = new profile($row["profileId"],$row["profileActivationToken"],$row["profileAtHandle"]);
+}
+}
+catch(\Exception $exception){throw(new \PDOException($exception->getMessage(),0,$exception));}
+return($profile);
+}
+/**
+ * gets profile by at handle
+ * @param \PDO $pdo PDO connection object
+ * @param string $profileAtHandle at handle to search for
+ * @return \SPLFixedArray of all profiles found
+ * @throws \PDOException when mySQL related errors occur
+ * @throws \TypeError when variables are not the correct data type
+ **/
+public static function getProfileByProfileAtHandle(\PDO $pdo, string $profileAtHandle) : \SplFixedArray{$profileAtHandle = trim($profileAtHandle);$profileAtHandle =filter_var($profileAtHandle,FILTER_SANITIZE_STRING,FILTER_FLAG_NO_ENCODE_QUOTES);if(empty($profileAtHandle)===true){throw(new \PDOException("not a valid Handle"));
+}
+$query = "SELECT profileId,profileActivationToken,ProfileAtHandle FROM profile WHERE profileAtHandle = :profileAtHandle";$statement = $pdo->prepare($query);
+$parameters = ["profileAtHandle" => $profileAtHandle];$statement->execute($parameters);$profiles = new \SplFixedArray($statement->rowCount());$statement->setFetchMode(\PDO::FETCH_ASSOC);
+while(($row = $statement->fetch())!==false){try{$profile = new profile($row["profileId"],$row["profileActivationToken"],$row["profileAtHandle"]);$profiles[$profiles->key()] = $profile;
+$profiles->next();}
+catch(\Exception $exception){throw(new \PDOException($exception->getMessage(),0,$exception));}
+}
+return($profiles);
+}
+/**
+ * get the profile by the profile activation token
+ * @param string #profileActivationToken
+ * @param \PDO object #pdo
+ * @return Profile|null profile or null if not found
+ * @throws \PDOException when mySQL related errors occur
+ * @throws \TypeError when variables are not the correct data type
+ **/
+public static function getProfileByProfileActivationToken(\PDO $pdo,string $profileActivationToken) : ?profile {
+	$profileActivationToken = trim($profileActivationToken); if(ctype_xdigit($profileActivationToken) ===false){throw(new \InvalidArgumentException("profile activation token is empty or in the wrong format"));
+	}
+	$query = "SELECT profileId,profileActivationToken,profileAtHandle FROM profile WHERE profileActivationToken = profileActivationToken";$statement = $pdo->prepare($query);$parameters = ["profileActivationToken" => $profileActivationToken];
+	$statement->execute($parameters);try{$profile = null; $statement->setFetchMode(\PDO::FETCH_ASSOC);$row = $statement->fetch();if($row !== false){$profile = new profile($row["profileActivationToken"],$row{"profileAthandle"});
+	}
+	}catch(\Exception $exception){throw(new \PDOException($exception->getMessage(),0,$exception));
+	} return($profile);
+}
+/**
+ * formats the state variables for JSON serialization
+ * @return array resulting state variables to serialize
+ **/
+public function jsonserialize(){return(get_object_vars($this));}
 }
